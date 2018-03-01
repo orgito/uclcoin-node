@@ -19,6 +19,15 @@ def get_balance(address):
     return jsonify({'balance': balance}), 200
 
 
+@app.route('/balance_unconfirmed/<address>', methods=['GET'])
+def get_balance_unconfirmed(address):
+    if not re.match(r'[\da-f]{66}$', address):
+        return jsonify({'message': 'Invalid address'}), 400
+
+    balance = blockchain.get_balance_unconfirmed(address)
+    return jsonify({'unconfirmed_balance': balance}), 200
+
+
 @app.route('/block/<index>', methods=['GET'])
 def get_block(index):
     if index == 'last':
