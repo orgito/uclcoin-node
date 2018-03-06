@@ -2,8 +2,8 @@
 
 import re
 
-from flask import Flask, jsonify
-from uclcoin import Block, BlockChain, Transaction
+from flask import Flask, jsonify, request
+from uclcoin import Block, BlockChain, Transaction, BlockchainException
 
 blockchain = BlockChain()
 
@@ -19,25 +19,36 @@ def get_balance(address):
     return jsonify({'balance': balance}), 200
 
 
-@app.route('/balance_unconfirmed/<address>', methods=['GET'])
-def get_balance_unconfirmed(address):
-    if not re.match(r'[\da-f]{66}$', address):
-        return jsonify({'message': 'Invalid address'}), 400
-
-    balance = blockchain.get_balance_unconfirmed(address)
-    return jsonify({'unconfirmed_balance': balance}), 200
+@app.route('/pending_transactions', methods=['GET'])
+def pending_transactions():
+    pending_transactions = [dict(t) for t in blockchain.pending_transactions]
+    return jsonify({'transactions': pending_transactions}), 200
 
 
 @app.route('/block/<index>', methods=['GET'])
 def get_block(index):
+    block = None
     if index == 'last':
         block = blockchain.get_latest_block()
-    else:
+    elif index.isdigit():
         block = blockchain.get_block_by_index(int(index))
     if not block:
         return jsonify({'message': 'Block not found'}), 404
 
     return jsonify(dict(block)), 200
+
+
+@app.route('/block', methods=['POST'])
+def add_block():
+    try:
+        block = request.get_json(force=True)
+        block = Block.from_dict(block)
+        blockchain.add_block(block)
+        return jsonify({'message': f'Block #{block.index} added to the Blockchain'}), 201
+    except (KeyError, TypeError, ValueError):
+        return jsonify({'message': f'Invalid block format'}), 400
+    except BlockchainException as bce: 
+        return jsonify({'message': f'Block rejected: {bce.message}'}), 400
 
 
 @app.route('/block/minable/<address>', methods=['GET'])
@@ -47,3 +58,20 @@ def get_minable_block(address):
 
     block = blockchain.get_minable_block(address)
     return jsonify(dict(block)), 200
+
+
+@app.route('/transaction', methods=['POST'])
+def transaction():
+    try:
+        transaction = request.get_json(force=True)
+        transaction = Transaction.from_dict(transaction)
+        blockchain.add_transaction(transaction)
+        return jsonify({'message': f'Pending transaction {transaction.tx_hash} added to the Blockchain'}), 201
+    except (KeyError, TypeError, ValueError):
+        return jsonify({'message': f'Invalid transacton format'}), 400
+    except BlockchainException as bce: 
+        return jsonify({'message': f'Transaction rejected: {bce.message}'}), 400
+
+
+if __name__ == '__main__':
+    app.run()

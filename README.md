@@ -1,1 +1,1 @@
-# uclcoin-nodes
+# uclcoin-node
