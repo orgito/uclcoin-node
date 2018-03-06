@@ -1,11 +1,20 @@
 #!python
 
+import os
 import re
 
 from flask import Flask, jsonify, request
 from uclcoin import Block, BlockChain, Transaction, BlockchainException
 
+CHAIN_FILE = './chain.db'
+if not os.path.isfile(CHAIN_FILE):
+    with open(CHAIN_FILE, 'w'):
+        pass
+
 blockchain = BlockChain()
+blockchain.MINIMUM_HASH_DIFFICULTY = 5
+
+blockchain.load_from_file(CHAIN_FILE)
 
 app = Flask(__name__)
 
@@ -44,6 +53,7 @@ def add_block():
         block = request.get_json(force=True)
         block = Block.from_dict(block)
         blockchain.add_block(block)
+        blockchain.save_to_file(CHAIN_FILE)
         return jsonify({'message': f'Block #{block.index} added to the Blockchain'}), 201
     except (KeyError, TypeError, ValueError):
         return jsonify({'message': f'Invalid block format'}), 400
@@ -66,6 +76,7 @@ def transaction():
         transaction = request.get_json(force=True)
         transaction = Transaction.from_dict(transaction)
         blockchain.add_transaction(transaction)
+        blockchain.save_to_file(CHAIN_FILE)
         return jsonify({'message': f'Pending transaction {transaction.tx_hash} added to the Blockchain'}), 201
     except (KeyError, TypeError, ValueError):
         return jsonify({'message': f'Invalid transacton format'}), 400
