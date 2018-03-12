@@ -1,4 +1,4 @@
-#!python
+#!/usr/bin/env python
 
 import os
 import re
@@ -12,8 +12,6 @@ if not os.path.isfile(CHAIN_FILE):
         pass
 
 blockchain = BlockChain()
-blockchain.MINIMUM_HASH_DIFFICULTY = 5
-
 blockchain.load_from_file(CHAIN_FILE)
 
 app = Flask(__name__)
@@ -75,7 +73,7 @@ def get_minable_block(address):
 
 
 @app.route('/transaction', methods=['POST'])
-def transaction():
+def add_transaction():
     try:
         transaction = request.get_json(force=True)
         transaction = Transaction.from_dict(transaction)
@@ -86,6 +84,16 @@ def transaction():
         return jsonify({'message': f'Invalid transacton format'}), 400
     except BlockchainException as bce:
         return jsonify({'message': f'Transaction rejected: {bce.message}'}), 400
+
+
+@app.route('/ranking', methods=['GET'])
+def get_ranking():
+    ranking = dict()
+    for block in blockchain.blocks[1:]:
+        cbt = block.transactions[-1]
+        ranking[cbt.destination] = ranking.get(cbt.destination, 0) + 10
+    ranking = sorted(ranking.items(), key=lambda x: x[1], reverse=True)
+    return jsonify(ranking), 200
 
 
 if __name__ == '__main__':
