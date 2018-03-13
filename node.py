@@ -76,6 +76,12 @@ def get_minable_block(address):
 def add_transaction():
     try:
         transaction = request.get_json(force=True)
+        if not re.match(r'[\da-f]{66}$', transaction['destination']):
+            return jsonify({'message': 'Invalid address'}), 400
+        if transaction['amount'] < 0.00001:
+            return jsonify({'message': 'Invalid amount. Minimum allowed amount is 0.00001'}), 400
+        if 0 > transaction['fee'] < 0.00001:
+            return jsonify({'message': 'Invalid fee. Minimum allowed fee is 0.00001 or zero'}), 400
         transaction = Transaction.from_dict(transaction)
         blockchain.add_transaction(transaction)
         blockchain.save_to_file(CHAIN_FILE)
