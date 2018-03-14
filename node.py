@@ -4,7 +4,8 @@ import os
 import re
 
 from flask import Flask, jsonify, request
-from uclcoin import Block, BlockChain, Transaction, BlockchainException
+
+from uclcoin import Block, BlockChain, BlockchainException, Transaction
 
 CHAIN_FILE = './chain.db'
 if not os.path.isfile(CHAIN_FILE):
@@ -90,6 +91,22 @@ def add_transaction():
         return jsonify({'message': f'Invalid transacton format'}), 400
     except BlockchainException as bce:
         return jsonify({'message': f'Transaction rejected: {bce.message}'}), 400
+
+
+@app.route('/avgtimes', methods=['GET'])
+def get_averages():
+    if len(blockchain.blocks) < 101:
+        return jsonify({'message': f'Not enough blocks'}), 400
+    last_time = blockchain.blocks[-101].timestamp
+    times = []
+    for block in blockchain.blocks[-100:]:
+        times.append(block.timestamp - last_time)
+        last_time = block.timestamp
+    response = {
+        'last50': sum(times[-50:]) / 50,
+        'last100': sum(times[-100:]) / 100,
+    }
+    return jsonify(response), 200
 
 
 @app.route('/ranking', methods=['GET'])
