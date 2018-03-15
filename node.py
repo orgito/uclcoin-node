@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# pylint: disable=C0103,C0111
 
 import os
 import re
@@ -29,8 +30,8 @@ def get_balance(address):
 
 @app.route('/pending_transactions', methods=['GET'])
 def pending_transactions():
-    pending_transactions = [dict(t) for t in blockchain.pending_transactions]
-    return jsonify({'transactions': pending_transactions}), 200
+    pending_txns = [dict(t) for t in blockchain.pending_transactions]
+    return jsonify({'transactions': pending_txns}), 200
 
 
 @app.route('/block/<index>', methods=['GET'])
@@ -105,6 +106,7 @@ def get_averages():
     response = {
         'last50': sum(times[-50:]) / 50,
         'last100': sum(times[-100:]) / 100,
+        'lastIndex': blockchain.blocks[-1].index
     }
     return jsonify(response), 200
 
