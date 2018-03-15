@@ -104,7 +104,10 @@ def get_averages():
         times.append(block.timestamp - last_time)
         last_time = block.timestamp
     response = {
-        'last50': sum(times[-50:]) / 50,
+        'last001': blockchain.blocks[-1].timestamp - blockchain.blocks[-2].timestamp,
+        'last005': sum(times[-5:]) / 5,
+        'last010': sum(times[-10:]) / 10,
+        'last050': sum(times[-50:]) / 50,
         'last100': sum(times[-100:]) / 100,
         'lastIndex': blockchain.blocks[-1].index
     }
