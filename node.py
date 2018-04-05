@@ -6,7 +6,7 @@ import re
 
 from flask import Flask, jsonify, request
 
-from uclcoin import Block, BlockChain, BlockchainException, Transaction
+from uclcoin import Block, BlockChain, BlockchainException, KeyPair, Transaction
 
 CHAIN_FILE = './chain.db'
 if not os.path.isfile(CHAIN_FILE):
@@ -85,6 +85,20 @@ def add_transaction():
         if 0 > transaction['fee'] < 0.00001:
             return jsonify({'message': 'Invalid fee. Minimum allowed fee is 0.00001 or zero'}), 400
         transaction = Transaction.from_dict(transaction)
+        blockchain.add_transaction(transaction)
+        blockchain.save_to_file(CHAIN_FILE)
+        return jsonify({'message': f'Pending transaction {transaction.tx_hash} added to the Blockchain'}), 201
+    except (KeyError, TypeError, ValueError):
+        return jsonify({'message': f'Invalid transacton format'}), 400
+    except BlockchainException as bce:
+        return jsonify({'message': f'Transaction rejected: {bce.message}'}), 400
+
+
+@app.route('/transaction/<private_key>/<public_key>/<value>', methods=['POST'])
+def add_transaction2():
+    try:
+        wallet = KeyPair(private_key)
+        transaction = wallet.create_transaction(public_key, value)
         blockchain.add_transaction(transaction)
         blockchain.save_to_file(CHAIN_FILE)
         return jsonify({'message': f'Pending transaction {transaction.tx_hash} added to the Blockchain'}), 201
