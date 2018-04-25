@@ -95,15 +95,15 @@ def add_transaction():
 
 
 @app.route('/transaction/<private_key>/<public_key>/<value>', methods=['POST'])
-def add_transaction2():
+def add_transaction2(private_key, public_key, value):
     try:
         wallet = KeyPair(private_key)
-        transaction = wallet.create_transaction(public_key, value)
+        transaction = wallet.create_transaction(public_key, int(value))
         blockchain.add_transaction(transaction)
         blockchain.save_to_file(CHAIN_FILE)
         return jsonify({'message': f'Pending transaction {transaction.tx_hash} added to the Blockchain'}), 201
-    except (KeyError, TypeError, ValueError):
-        return jsonify({'message': f'Invalid transacton format'}), 400
+    #except (KeyError, TypeError, ValueError):
+    #    return jsonify({'message': f'Invalid transacton format'}), 400
     except BlockchainException as bce:
         return jsonify({'message': f'Transaction rejected: {bce.message}'}), 400
 
