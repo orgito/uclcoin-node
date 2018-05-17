@@ -98,7 +98,7 @@ def add_transaction():
 def add_transaction2(private_key, public_key, value):
     try:
         wallet = KeyPair(private_key)
-        transaction = wallet.create_transaction(public_key, int(value))
+        transaction = wallet.create_transaction(public_key, float(value))
         blockchain.add_transaction(transaction)
         blockchain.save_to_file(CHAIN_FILE)
         return jsonify({'message': f'Pending transaction {transaction.tx_hash} added to the Blockchain'}), 201
