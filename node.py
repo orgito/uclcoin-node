@@ -133,7 +133,7 @@ def get_ranking():
     ranking = dict()
     for block in blockchain.blocks[1:]:
         cbt = block.transactions[-1]
-        ranking[cbt.destination] = ranking.get(cbt.destination, 0) + 10
+        ranking[cbt.destination] = ranking.get(cbt.destination, 0) + cbt.amount
     ranking = sorted(ranking.items(), key=lambda x: x[1], reverse=True)
     return jsonify(ranking), 200
 
