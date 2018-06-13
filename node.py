@@ -5,16 +5,12 @@ import os
 import re
 
 from flask import Flask, jsonify, request
-
 from uclcoin import Block, BlockChain, BlockchainException, KeyPair, Transaction
 
-CHAIN_FILE = './chain.db'
-if not os.path.isfile(CHAIN_FILE):
-    with open(CHAIN_FILE, 'w'):
-        pass
+from pymongo import MongoClient
 
-blockchain = BlockChain()
-blockchain.load_from_file(CHAIN_FILE)
+uclcoindb = MongoClient().uclcoin
+blockchain = BlockChain(mongodb=uclcoindb)
 
 app = Flask(__name__)
 
@@ -53,7 +49,6 @@ def add_block():
         block = request.get_json(force=True)
         block = Block.from_dict(block)
         blockchain.add_block(block)
-        blockchain.save_to_file(CHAIN_FILE)
         return jsonify({'message': f'Block #{block.index} added to the Blockchain'}), 201
     except (KeyError, TypeError, ValueError):
         return jsonify({'message': f'Invalid block format'}), 400
@@ -86,7 +81,6 @@ def add_transaction():
             return jsonify({'message': 'Invalid fee. Minimum allowed fee is 0.00001 or zero'}), 400
         transaction = Transaction.from_dict(transaction)
         blockchain.add_transaction(transaction)
-        blockchain.save_to_file(CHAIN_FILE)
         return jsonify({'message': f'Pending transaction {transaction.tx_hash} added to the Blockchain'}), 201
     except (KeyError, TypeError, ValueError):
         return jsonify({'message': f'Invalid transacton format'}), 400
@@ -100,30 +94,28 @@ def add_transaction2(private_key, public_key, value):
         wallet = KeyPair(private_key)
         transaction = wallet.create_transaction(public_key, float(value))
         blockchain.add_transaction(transaction)
-        blockchain.save_to_file(CHAIN_FILE)
         return jsonify({'message': f'Pending transaction {transaction.tx_hash} added to the Blockchain'}), 201
-    #except (KeyError, TypeError, ValueError):
-    #    return jsonify({'message': f'Invalid transacton format'}), 400
     except BlockchainException as bce:
         return jsonify({'message': f'Transaction rejected: {bce.message}'}), 400
 
 
 @app.route('/avgtimes', methods=['GET'])
 def get_averages():
-    if len(blockchain.blocks) < 101:
+    if blockchain._count_blocks() < 101:
         return jsonify({'message': f'Not enough blocks'}), 400
-    last_time = blockchain.blocks[-101].timestamp
+    last_time = blockchain.get_block_by_index(-101).timestamp
     times = []
-    for block in blockchain.blocks[-100:]:
+    for i in range(-100, 0):
+        block = blockchain.get_block_by_index(i)
         times.append(block.timestamp - last_time)
         last_time = block.timestamp
     response = {
-        'last001': blockchain.blocks[-1].timestamp - blockchain.blocks[-2].timestamp,
+        'last001': blockchain.get_block_by_index(-1).timestamp - blockchain.get_block_by_index(-2).timestamp,
         'last005': sum(times[-5:]) / 5,
         'last010': sum(times[-10:]) / 10,
         'last050': sum(times[-50:]) / 50,
         'last100': sum(times[-100:]) / 100,
-        'lastIndex': blockchain.blocks[-1].index
+        'lastIndex': blockchain.get_latest_block().index
     }
     return jsonify(response), 200
 
@@ -131,7 +123,9 @@ def get_averages():
 @app.route('/ranking', methods=['GET'])
 def get_ranking():
     ranking = dict()
-    for block in blockchain.blocks[1:]:
+    blocks = blockchain.blocks
+    next(blocks)  # skip genesis block
+    for block in blocks:
         cbt = block.transactions[-1]
         ranking[cbt.destination] = ranking.get(cbt.destination, 0) + cbt.amount
     ranking = sorted(ranking.items(), key=lambda x: x[1], reverse=True)
