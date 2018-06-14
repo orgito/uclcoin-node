@@ -53,7 +53,7 @@ def add_block():
     except (KeyError, TypeError, ValueError):
         return jsonify({'message': f'Invalid block format'}), 400
     except BlockchainException as bce:
-        return jsonify({'message': f'Block rejected: {bce.message}'}), 400
+        return jsonify({'message': f'Block rejected: {bce}'}), 400
 
 
 @app.route('/block/minable/<address>', methods=['GET'])
@@ -85,7 +85,7 @@ def add_transaction():
     except (KeyError, TypeError, ValueError):
         return jsonify({'message': f'Invalid transacton format'}), 400
     except BlockchainException as bce:
-        return jsonify({'message': f'Transaction rejected: {bce.message}'}), 400
+        return jsonify({'message': f'Transaction rejected: {bce}'}), 400
 
 
 @app.route('/transaction/<private_key>/<public_key>/<value>', methods=['POST'])
@@ -96,7 +96,7 @@ def add_transaction2(private_key, public_key, value):
         blockchain.add_transaction(transaction)
         return jsonify({'message': f'Pending transaction {transaction.tx_hash} added to the Blockchain'}), 201
     except BlockchainException as bce:
-        return jsonify({'message': f'Transaction rejected: {bce.message}'}), 400
+        return jsonify({'message': f'Transaction rejected: {bce}'}), 400
 
 
 @app.route('/avgtimes', methods=['GET'])
